@@ -1,0 +1,12 @@
+#tumblrpostmap img {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	outline: 0;
+	vertical-align: baseline;
+	background: none;
+	max-width: none;
+	min-width: none;
+	-moz-box-shadow: none;
+	-moz-border-radius: 0px;
+}

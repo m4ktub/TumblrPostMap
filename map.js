@@ -1,4 +1,3 @@
-
 // Copyright (c) 2010 Claudio Gil <claudio.f.gil@gmail.com>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-var Tumblr = (function() {
+var TumblrPostMap = (function() {
 	var map = null;
 	var points = [];
 	var infos = [];
@@ -30,44 +29,6 @@ var Tumblr = (function() {
 	
 	function recenterMap(center) {
 		map && center && map.setCenter(center);
-	}
-
-	function addTrack(fields, marker, infowindow) {
-		if (! tracksContainer) {
-			return;
-		}
-		
-		var date = fields.date.getFullYear() + "-" + (fields.date.getMonth() + 1) + "-" + fields.date.getDate();
-		var dateBody = fields.date.getDate() + "/" + (fields.date.getMonth() + 1); 
-		
-		function showTrack() {
-			location.hash = "#p" + fields.postId;
-		}
-		
-		$(tracksContainer).append(
-			$('<div class="track"></div>').append(
-				$('<div class="header"></div>').append(
-					$('<span></span>').append(
-						dateBody
-					)
-				).append(
-					$('<p></p>').append(fields.plainTitle)
-				)
-			).append(
-				$('<div class="body"></div>').append(
-					fields.icon ? fields.icon : fields.plainBody
-				)
-			)
-			.hover(
-				function() { 
-					$(this).css('cursor', 'pointer'); 
-				}, 
-				function() { 
-					$(this).css('cursor', 'default'); 
-				}
-			)
-			.click(showTrack)
-		);
 	}
 	
 	function checkAnchor() {
@@ -153,7 +114,7 @@ var Tumblr = (function() {
 			else {
 				var body = "";
 				for (var i = 0; i < post.photos.length; i++) {
-					body += '<img src="' + post.photos[i]['photo-url-75'] + '"></img>'
+					body += '<img src="h' + post.photos[i]['photo-url-75'] + '"></img>'
 				}
 				
 				return body;
@@ -198,25 +159,18 @@ var Tumblr = (function() {
 	};
 	
 	return {
-		createMap: function(mapId, tracksId) {
-			var el = document.getElementById(mapId);
+		createMap: function(options) {
+			var el = document.getElementById(options.mapId);
 			
 			if (!el) {
 				return;
 			}
-
-			tracksContainer = $('#' + tracksId);
 			
-			var options = {
-			  zoom: 8,
-			  mapTypeId: google.maps.MapTypeId.HYBRID
-			};
-			
-			map = new google.maps.Map(el, options);
+			map = new google.maps.Map(el, options.mapOptions);
 			this.requestPosts(0);
 		},
 		requestPosts: function(pos) {
-			$.getScript('/api/read/json?callback=Tumblr.process&tagged=geo&start=' + pos);
+			$.getScript('/api/read/json?callback=TumblrPostMap.process&tagged=geo&start=' + pos);
 		},
 		process: function(data) {
 			for (var i=0; i < data.posts.length; i++) {
@@ -271,8 +225,6 @@ var Tumblr = (function() {
 				google.maps.event.addListener(marker, 'click', createMarkerClickHandler(marker, infowindow));
 				google.maps.event.addListener(infowindow, 'domready', createInfowindowDomReadyHandler(infowindow));
 				
-				addTrack(fields, marker, infowindow);
-				
 				if (! map.getCenter()) {
 					if (!location.hash || location.hash == "#p" + fields.postId) {
 						// center on last post and open info
@@ -315,3 +267,36 @@ var Tumblr = (function() {
 		}
 	};
 })();
+
+//
+// plugin
+//
+
+(function($) {
+  $.fn.tumblrPostMap = function(options) {
+	var defaults = {
+		mapId: 'tumblrpostmap',
+		mapSize: undefined,
+		mapOptions: {
+			zoom: 8,
+			mapTypeId: google.maps.MapTypeId.HYBRID
+		}
+	};
+    
+    var options = $.extend(true, defaults, options);
+    
+    // insert map div
+    var mapDiv = $('<div/>').attr({ id: options.mapId });    
+    $(this).hide();
+    $(this).after(mapDiv);
+    
+    // set explicit size, needed by google maps
+    mapDiv.css(options.mapSize || { width: '100%', height: Math.round($(this).parent().width() * 9.0 / 16) + 'px' });
+    
+    // initialize map
+    TumblrPostMap.createMap(options);
+    
+    return this;
+  };
+})(jQuery);
+
